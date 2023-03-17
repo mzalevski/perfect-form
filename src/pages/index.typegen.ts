@@ -7,15 +7,26 @@ export interface Typegen0 {
   };
   invokeSrcNameMap: {};
   missingImplementations: {
-    actions: never;
+    actions: "resetData" | "submitData";
     delays: never;
-    guards: never;
+    guards: "isContactDataValid" | "isDataValid" | "isPersonalDataValid";
     services: never;
   };
-  eventsCausingActions: {};
+  eventsCausingActions: {
+    resetData: "AGAIN";
+    submitData: "SUBMIT";
+  };
   eventsCausingDelays: {};
-  eventsCausingGuards: {};
+  eventsCausingGuards: {
+    isContactDataValid: "NEXT";
+    isDataValid: "SUBMIT";
+    isPersonalDataValid: "NEXT";
+  };
   eventsCausingServices: {};
-  matchesStates: "screenOne" | "screenTwo";
+  matchesStates:
+    | "contactDataScreen"
+    | "personalDataScreen"
+    | "successScreen"
+    | "summaryScreen";
   tags: never;
 }
