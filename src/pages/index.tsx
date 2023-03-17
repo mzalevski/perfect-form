@@ -1,78 +1,35 @@
 import { useMachine } from "@xstate/react";
-import { createMachine } from "xstate";
-import type { StateFrom } from "xstate";
+import { FormProvider, useForm, useFormContext } from "react-hook-form";
+import { createMachine, StateFrom } from "xstate";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 const machine = createMachine({
   tsTypes: {} as import("./index.typegen").Typegen0,
-  schema: {
-    events: {} as { type: "NEXT" | "BACK" },
-    context: {} as {
-      screenOneText: string;
-      screenTwoText: string;
-    },
-  },
+  schema: { events: {} as { type: "NEXT" | "BACK" } },
   initial: "screenOne",
   states: {
-    screenOne: {
-      on: {
-        NEXT: {
-          target: "screenTwo",
-          cond: "screenOneTextEntered",
-        },
-      },
-    },
+    screenOne: { on: { NEXT: { target: "screenTwo" } } },
     screenTwo: { on: { BACK: { target: "screenOne" } } },
   },
 });
 
-const ScreenOne = () => {
-  return (
-    <div style={{ fontWeight: "bold" }}>
-      <div>ScreenOne</div>
+const schema = z.object({
+  screenOneText: z.string().min(1),
+  screenTwoText: z.string().min(1),
+});
 
-      <div>
-        <input type="text" placeholder="ScreenOneText" />
-      </div>
-    </div>
-  );
-};
-
-const ScreenTwo = () => {
-  return (
-    <div style={{ fontWeight: "bold" }}>
-      <div>ScreenTwo</div>
-
-      <div>
-        <input type="text" placeholder="ScreenTwoText" />
-      </div>
-    </div>
-  );
-};
-
-const getCurrentScreen = (state: StateFrom<typeof machine>) => {
-  if (state.matches("screenOne")) {
-    return <ScreenOne />;
-  }
-
-  if (state.matches("screenTwo")) {
-    return <ScreenTwo />;
-  }
-};
+type Schema = z.infer<typeof schema>;
 
 export default function Home() {
-  const [state, send] = useMachine(machine, {
-    guards: {
-      screenOneTextEntered: (ctx) => {
-        return ctx.screenOneText.length > 0;
-      },
-    },
-  });
-
+  const form = useForm<Schema>({ resolver: zodResolver(schema) });
+  const [state, send] = useMachine(machine);
   const currentScreen = getCurrentScreen(state);
+  const formCurrentState = form.watch();
 
   return (
     <div>
-      {currentScreen}
+      <FormProvider {...form}>{currentScreen}</FormProvider>
 
       <br />
 
@@ -93,6 +50,42 @@ export default function Home() {
       >
         NEXT
       </button>
+
+      <pre>{JSON.stringify(formCurrentState, null, 2)}</pre>
     </div>
   );
 }
+
+const ScreenOne = () => {
+  const { register } = useFormContext<Schema>();
+
+  return (
+    <div style={{ fontWeight: "bold" }}>
+      <div>ScreenOne</div>
+
+      <input type="text" {...register("screenOneText")} />
+    </div>
+  );
+};
+
+const ScreenTwo = () => {
+  const { register } = useFormContext<Schema>();
+
+  return (
+    <div style={{ fontWeight: "bold" }}>
+      <div>ScreenTwo</div>
+
+      <input type="text" {...register("screenTwoText")} />
+    </div>
+  );
+};
+
+const getCurrentScreen = (state: StateFrom<typeof machine>) => {
+  if (state.matches("screenOne")) {
+    return <ScreenOne />;
+  }
+
+  if (state.matches("screenTwo")) {
+    return <ScreenTwo />;
+  }
+};
