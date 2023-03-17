@@ -1,9 +1,11 @@
+/* eslint-disable react/display-name */
 import { useMachine } from "@xstate/react";
 import { FormProvider, useForm, useFormContext } from "react-hook-form";
 import { createMachine, StateFrom } from "xstate";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { pick } from "radash";
+import { memo } from "react";
 
 const contactDataSchema = {
   phone: z.string().length(9),
@@ -72,7 +74,11 @@ const machine = createMachine({
 });
 
 export default function Home() {
-  // console.log("Home render");
+  return <Form />;
+}
+
+const Form = () => {
+  console.log("Form render");
   const form = useForm<Schema>({
     resolver: zodResolver(schema),
     mode: "onBlur",
@@ -155,10 +161,10 @@ export default function Home() {
       </button>
     </div>
   );
-}
+};
 
-const ContactDataScreen = () => {
-  // console.log("ContactDataScreen render");
+const ContactDataScreen = memo(() => {
+  console.log("ContactDataScreen render");
   const {
     register,
     formState: { errors },
@@ -186,10 +192,10 @@ const ContactDataScreen = () => {
       )}
     </div>
   );
-};
+});
 
-const PersonalDataScreen = () => {
-  // console.log("PersonalDataScreen render");
+const PersonalDataScreen = memo(() => {
+  console.log("PersonalDataScreen render");
   const {
     register,
     formState: { errors },
@@ -216,10 +222,10 @@ const PersonalDataScreen = () => {
       )}
     </div>
   );
-};
+});
 
-const SummaryScreen = () => {
-  // console.log("SummaryScreen render");
+const SummaryScreen = memo(() => {
+  console.log("SummaryScreen render");
   const { watch } = useFormContext<Schema>();
 
   const formState = watch();
@@ -239,17 +245,17 @@ const SummaryScreen = () => {
       </div>
     </div>
   );
-};
+});
 
-const SuccessScreen = () => {
-  // console.log("SuccessScreen render");
+const SuccessScreen = memo(() => {
+  console.log("SuccessScreen render");
 
   return (
     <div>
       <div style={{ fontWeight: "bold" }}>Success</div>
     </div>
   );
-};
+});
 
 const getCurrentScreen = (state: StateFrom<typeof machine>) => {
   if (state.matches("contactDataScreen")) {
