@@ -2,6 +2,29 @@ import { useMachine } from "@xstate/react";
 import { createMachine } from "xstate";
 import type { StateFrom } from "xstate";
 
+const machine = createMachine({
+  tsTypes: {} as import("./index.typegen").Typegen0,
+  schema: {
+    events: {} as { type: "NEXT" | "BACK" },
+    context: {} as {
+      screenOneText: string;
+      screenTwoText: string;
+    },
+  },
+  initial: "screenOne",
+  states: {
+    screenOne: {
+      on: {
+        NEXT: {
+          target: "screenTwo",
+          cond: "screenOneTextEntered",
+        },
+      },
+    },
+    screenTwo: { on: { BACK: { target: "screenOne" } } },
+  },
+});
+
 const ScreenOne = () => {
   return (
     <div style={{ fontWeight: "bold" }}>
@@ -26,16 +49,6 @@ const ScreenTwo = () => {
   );
 };
 
-const machine = createMachine({
-  tsTypes: {} as import("./index.typegen").Typegen0,
-  schema: { events: {} as { type: "NEXT" | "BACK" } },
-  initial: "screenOne",
-  states: {
-    screenOne: { on: { NEXT: "screenTwo" } },
-    screenTwo: { on: { BACK: "screenOne" } },
-  },
-});
-
 const getCurrentScreen = (state: StateFrom<typeof machine>) => {
   if (state.matches("screenOne")) {
     return <ScreenOne />;
@@ -47,7 +60,13 @@ const getCurrentScreen = (state: StateFrom<typeof machine>) => {
 };
 
 export default function Home() {
-  const [state, send] = useMachine(machine);
+  const [state, send] = useMachine(machine, {
+    guards: {
+      screenOneTextEntered: (ctx) => {
+        return ctx.screenOneText.length > 0;
+      },
+    },
+  });
 
   const currentScreen = getCurrentScreen(state);
 

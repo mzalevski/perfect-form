@@ -9,12 +9,14 @@ export interface Typegen0 {
   missingImplementations: {
     actions: never;
     delays: never;
-    guards: never;
+    guards: "screenOneTextEntered";
     services: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
-  eventsCausingGuards: {};
+  eventsCausingGuards: {
+    screenOneTextEntered: "NEXT";
+  };
   eventsCausingServices: {};
   matchesStates: "screenOne" | "screenTwo";
   tags: never;
