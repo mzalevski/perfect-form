@@ -5,7 +5,8 @@ import { createMachine, StateFrom } from "xstate";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { pick } from "radash";
-import { memo } from "react";
+import { memo, useEffect } from "react";
+import { BrowserOnly } from "./BrowserOnly";
 
 const contactDataSchema = {
   phone: z.string().length(9),
@@ -34,8 +35,8 @@ const machine = createMachine({
     contactDataScreen: {
       on: {
         NEXT: {
-          target: "personalDataScreen",
           cond: "isContactDataValid",
+          target: "personalDataScreen",
         },
       },
     },
@@ -45,8 +46,8 @@ const machine = createMachine({
           target: "contactDataScreen",
         },
         NEXT: {
-          target: "summaryScreen",
           cond: "isPersonalDataValid",
+          target: "summaryScreen",
         },
       },
     },
@@ -74,16 +75,26 @@ const machine = createMachine({
 });
 
 export default function Home() {
-  return <Form />;
+  return (
+    <BrowserOnly>
+      <Form />
+    </BrowserOnly>
+  );
 }
 
-const Form = () => {
+const Form = memo(() => {
   console.log("Form render");
   const form = useForm<Schema>({
     resolver: zodResolver(schema),
     mode: "onBlur",
+    defaultValues: JSON.parse(localStorage.getItem("form-data") ?? "{}"),
   });
   const formState = form.watch();
+
+  useEffect(() => {
+    localStorage.setItem("form-data", JSON.stringify(formState));
+  }, [formState]);
+
   const [state, send] = useMachine(machine, {
     guards: {
       isContactDataValid: () => {
@@ -111,7 +122,8 @@ const Form = () => {
         console.log(data);
       }),
       resetData: () => {
-        form.reset();
+        localStorage.removeItem("form-data");
+        form.reset({}, { keepDefaultValues: false });
       },
     },
   });
@@ -161,7 +173,7 @@ const Form = () => {
       </button>
     </div>
   );
-};
+});
 
 const ContactDataScreen = memo(() => {
   console.log("ContactDataScreen render");
@@ -180,6 +192,8 @@ const ContactDataScreen = memo(() => {
         placeholder="phone"
         maxLength={9}
       />
+
+      <br />
 
       {errors.phone && (
         <div style={{ color: "red", fontSize: 12 }}>{errors.phone.message}</div>
@@ -212,6 +226,8 @@ const PersonalDataScreen = memo(() => {
           {errors.firstName.message}
         </div>
       )}
+
+      <br />
 
       <input {...register("lastName")} placeholder="lastName" />
 
