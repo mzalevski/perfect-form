@@ -4,23 +4,22 @@ import { FormProvider, useForm, useFormContext } from "react-hook-form";
 import { createMachine, StateFrom } from "xstate";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { pick } from "radash";
 import { memo, useEffect } from "react";
 import { BrowserOnly } from "./BrowserOnly";
 
-const contactDataSchema = {
+const contactDataSchema = z.object({
   phone: z.string().length(9),
   email: z.string().email(),
-};
+});
 
-const personalDataSchema = {
+const personalDataSchema = z.object({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
-};
+});
 
 const schema = z.object({
-  ...contactDataSchema,
-  ...personalDataSchema,
+  contactData: contactDataSchema,
+  personalData: personalDataSchema,
 });
 
 type Schema = z.infer<typeof schema>;
@@ -86,7 +85,7 @@ const Form = memo(() => {
   console.log("Form render");
   const form = useForm<Schema>({
     resolver: zodResolver(schema),
-    mode: "onBlur",
+    mode: "all",
     defaultValues: JSON.parse(localStorage.getItem("form-data") ?? "{}"),
   });
   const formState = form.watch();
@@ -98,16 +97,14 @@ const Form = memo(() => {
   const [state, send] = useMachine(machine, {
     guards: {
       isContactDataValid: () => {
-        const { success } = z
-          .object(contactDataSchema)
-          .safeParse(pick(formState, ["phone", "email"]));
+        const { success } = contactDataSchema.safeParse(formState.contactData);
 
         return success;
       },
       isPersonalDataValid: () => {
-        const { success } = z
-          .object(personalDataSchema)
-          .safeParse(pick(formState, ["firstName", "lastName"]));
+        const { success } = personalDataSchema.safeParse(
+          formState.personalData
+        );
 
         return success;
       },
@@ -119,7 +116,7 @@ const Form = memo(() => {
     },
     actions: {
       submitData: form.handleSubmit((data) => {
-        console.log(data);
+        console.log({ ...data.contactData, ...data.personalData });
       }),
       resetData: () => {
         localStorage.removeItem("form-data");
@@ -187,7 +184,7 @@ const ContactDataScreen = memo(() => {
       <div style={{ fontWeight: "bold" }}>Contact Data</div>
 
       <input
-        {...register("phone")}
+        {...register("contactData.phone")}
         autoFocus
         placeholder="phone"
         maxLength={9}
@@ -195,14 +192,18 @@ const ContactDataScreen = memo(() => {
 
       <br />
 
-      {errors.phone && (
-        <div style={{ color: "red", fontSize: 12 }}>{errors.phone.message}</div>
+      {errors.contactData?.phone && (
+        <div style={{ color: "red", fontSize: 12 }}>
+          {errors.contactData.phone.message}
+        </div>
       )}
 
-      <input {...register("email")} placeholder="email" />
+      <input {...register("contactData.email")} placeholder="email" />
 
-      {errors.email && (
-        <div style={{ color: "red", fontSize: 12 }}>{errors.email.message}</div>
+      {errors.contactData?.email && (
+        <div style={{ color: "red", fontSize: 12 }}>
+          {errors.contactData.email.message}
+        </div>
       )}
     </div>
   );
@@ -219,21 +220,25 @@ const PersonalDataScreen = memo(() => {
     <div>
       <div style={{ fontWeight: "bold" }}>Personal Data</div>
 
-      <input {...register("firstName")} autoFocus placeholder="firstName" />
+      <input
+        {...register("personalData.firstName")}
+        autoFocus
+        placeholder="firstName"
+      />
 
-      {errors.firstName && (
+      {errors.personalData?.firstName && (
         <div style={{ color: "red", fontSize: 12 }}>
-          {errors.firstName.message}
+          {errors.personalData.firstName.message}
         </div>
       )}
 
       <br />
 
-      <input {...register("lastName")} placeholder="lastName" />
+      <input {...register("personalData.lastName")} placeholder="lastName" />
 
-      {errors.lastName && (
+      {errors.personalData?.lastName && (
         <div style={{ color: "red", fontSize: 12 }}>
-          {errors.lastName.message}
+          {errors.personalData.lastName.message}
         </div>
       )}
     </div>
@@ -250,14 +255,38 @@ const SummaryScreen = memo(() => {
     <div>
       <div style={{ fontWeight: "bold" }}>Summary</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-        {Object.entries(formState).map(([key, value]) => {
-          return (
-            <div key={key}>
-              {key}: {value}
-            </div>
-          );
-        })}
+      <div>
+        <div>Contact Data</div>
+
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}
+        >
+          {Object.entries(formState.contactData).map(([key, value]) => {
+            return (
+              <div key={key}>
+                {key}: {value}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <br />
+
+      <div>
+        <div>Personal Data</div>
+
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}
+        >
+          {Object.entries(formState.personalData).map(([key, value]) => {
+            return (
+              <div key={key}>
+                {key}: {value}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
