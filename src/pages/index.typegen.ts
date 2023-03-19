@@ -3,16 +3,20 @@
 export interface Typegen0 {
   "@@xstate/typegen": true;
   internalEvents: {
+    "xstate.after(500)#(machine).loadingForm": {
+      type: "xstate.after(500)#(machine).loadingForm";
+    };
     "xstate.init": { type: "xstate.init" };
   };
   invokeSrcNameMap: {};
   missingImplementations: {
-    actions: "resetData" | "submitData";
+    actions: "loadForm" | "resetData" | "submitData";
     delays: never;
     guards: "isContactDataValid" | "isDataValid" | "isPersonalDataValid";
     services: never;
   };
   eventsCausingActions: {
+    loadForm: "xstate.after(500)#(machine).loadingForm";
     resetData: "AGAIN";
     submitData: "SUBMIT";
   };
@@ -25,6 +29,7 @@ export interface Typegen0 {
   eventsCausingServices: {};
   matchesStates:
     | "contactDataScreen"
+    | "loadingForm"
     | "personalDataScreen"
     | "successScreen"
     | "summaryScreen";

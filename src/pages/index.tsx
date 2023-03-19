@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { memo, useEffect } from "react";
 import { BrowserOnly } from "./BrowserOnly";
+import { BarLoader } from "react-spinners";
 
 const contactDataSchema = z.object({
   phone: z.string().length(9),
@@ -28,9 +29,30 @@ const machine = createMachine({
   /** @xstate-layout N4IgpgJg5mDOIC5QAoC2BDAxgCwJYDswBKAOkwHt8AXLKgEXRoGVMAnMMfAYgDkBRABoAVANoAGALqJQAB3KxcVXJWkgAHogDMAFgBsJAOwAmXdqNGAHEe0BGGwFZNmgDQgAnonsXtJB-ZsWgdoAnHrBBgC+Ea5oWHiEpDJgrLCU6AA2DMxsHNwAQgCCAMIA0uJSSCByCkoqlRoItsEkYlbaBsG6mgbejq4eCD02JJr25rq6rV42ukZRMRg4BMQkSSlpmYzoLOycvIKikqrVisr4qg0WBgYk9mNjZmLBjh39nt6+dwFBobrh8yBYksEiRYABXVAYVhuHa5LiFUrlY7yU51UANZ7DTp2ey2AxmbQWN6DCzDUbjSYWaa6AFA+IrcGQ9DQ2F7JgAVTyAFkAJKHCqyFG1c71RA2IzikiEv72XQWMTaRWK4my4ZGMQ2RWkkzBMRGTS0xb00jgzCYOCwVncAoAcQKPJ4SMqJ2FF0QpKxTkcT2MYlGRPciGC5haquCz1CrSeUWiIHw5AgcFUdOWRGRNTOboQ9huml1mhm4W6et09mJ7U0hnM4buxgs4YsBtjKZBFGotCy2xynHTqJF6LFYnsI3zhYMxZMZcDgwchnsCosXQMNlGpcNcVTq2SqXwGU7Vt7rtFCFMw9a2hzBkmYg6ugMxOXw4M8+l3RXsvs6+BDIhUJh3f7KohUzY8bBvYZdBsYMC2CTQJW8bQH1nZ8FyXd8Ji-Y1QTBM0LQPZ1gLRdQxTzSs7z0bQdAMJ4bynAZHznVC31XT8YyAA */
   tsTypes: {} as import("./index.typegen").Typegen0,
   predictableActionArguments: true,
-  schema: { events: {} as { type: "NEXT" | "BACK" | "SUBMIT" | "AGAIN" } },
-  initial: "contactDataScreen",
+  schema: {
+    events: {} as {
+      type:
+        | "NEXT"
+        | "BACK"
+        | "SUBMIT"
+        | "AGAIN"
+        | "LOAD_CONTACT_DATA_SCREEN"
+        | "LOAD_PERSONAL_DATA_SCREEN"
+        | "LOAD_SUMMARY_SCREEN"
+        | "LOAD_SUCCESS_SCREEN";
+    },
+  },
+  initial: "loadingForm",
   states: {
+    loadingForm: {
+      after: { 500: { actions: ["loadForm"] } },
+      on: {
+        LOAD_CONTACT_DATA_SCREEN: { target: "contactDataScreen" },
+        LOAD_PERSONAL_DATA_SCREEN: { target: "personalDataScreen" },
+        LOAD_SUMMARY_SCREEN: { target: "summaryScreen" },
+        LOAD_SUCCESS_SCREEN: { target: "successScreen" },
+      },
+    },
     contactDataScreen: {
       on: {
         NEXT: {
@@ -85,9 +107,10 @@ const Form = memo(() => {
   console.log("Form render");
   const form = useForm<Schema>({
     resolver: zodResolver(schema),
-    mode: "all",
+    mode: "onBlur",
     defaultValues: JSON.parse(localStorage.getItem("form-data") ?? "{}"),
   });
+
   const formState = form.watch();
 
   useEffect(() => {
@@ -115,6 +138,28 @@ const Form = memo(() => {
       },
     },
     actions: {
+      loadForm: () => {
+        const currentScreen = localStorage.getItem("current-screen");
+
+        if (currentScreen === "personalDataScreen") {
+          send({ type: "LOAD_PERSONAL_DATA_SCREEN" });
+          return;
+        }
+
+        if (currentScreen === "summaryScreen") {
+          send({ type: "LOAD_SUMMARY_SCREEN" });
+          return;
+        }
+
+        if (currentScreen === "successScreen") {
+          console.log("xxx aaa", currentScreen);
+          send({ type: "LOAD_SUCCESS_SCREEN" });
+          send({ type: "AGAIN" });
+          return;
+        }
+
+        send({ type: "LOAD_CONTACT_DATA_SCREEN" });
+      },
       submitData: form.handleSubmit((data) => {
         console.log({ ...data.contactData, ...data.personalData });
       }),
@@ -125,49 +170,60 @@ const Form = memo(() => {
     },
   });
 
+  useEffect(() => {
+    const screen = state.value.toString();
+
+    if (screen === "loadingForm") return;
+
+    localStorage.setItem("current-screen", screen);
+  }, [state.value]);
+
   const currentScreen = getCurrentScreen(state);
 
   return (
-    <div>
-      <FormProvider {...form}>{currentScreen}</FormProvider>
+    <div style={{ display: "grid", placeItems: "center" }}>
+      <FormProvider {...form}>
+        <div style={{ height: "120px" }}>{currentScreen}</div>
+      </FormProvider>
 
       <br />
 
-      <button
-        disabled={!state.can("BACK")}
-        onClick={() => {
-          send("BACK");
-        }}
-      >
-        BACK
-      </button>
+      <div>
+        <button
+          disabled={!state.can("BACK")}
+          onClick={() => {
+            send("BACK");
+          }}
+        >
+          BACK
+        </button>
 
-      <button
-        disabled={!state.can("NEXT")}
-        onClick={() => {
-          send("NEXT");
-        }}
-      >
-        NEXT
-      </button>
+        <button
+          disabled={!state.can("NEXT")}
+          onClick={() => {
+            send("NEXT");
+          }}
+        >
+          NEXT
+        </button>
 
-      <button
-        disabled={!state.can("SUBMIT")}
-        onClick={() => {
-          send("SUBMIT");
-        }}
-      >
-        SUBMIT
-      </button>
-
-      <button
-        disabled={!state.can("AGAIN")}
-        onClick={() => {
-          send("AGAIN");
-        }}
-      >
-        AGAIN
-      </button>
+        <button
+          disabled={!state.can("SUBMIT")}
+          onClick={() => {
+            send("SUBMIT");
+          }}
+        >
+          SUBMIT
+        </button>
+        <button
+          disabled={!state.can("AGAIN")}
+          onClick={() => {
+            send("AGAIN");
+          }}
+        >
+          AGAIN
+        </button>
+      </div>
     </div>
   );
 });
@@ -183,6 +239,8 @@ const ContactDataScreen = memo(() => {
     <div>
       <div style={{ fontWeight: "bold" }}>Contact Data</div>
 
+      <br />
+
       <input
         {...register("contactData.phone")}
         autoFocus
@@ -190,13 +248,13 @@ const ContactDataScreen = memo(() => {
         maxLength={9}
       />
 
-      <br />
-
       {errors.contactData?.phone && (
         <div style={{ color: "red", fontSize: 12 }}>
           {errors.contactData.phone.message}
         </div>
       )}
+
+      <br />
 
       <input {...register("contactData.email")} placeholder="email" />
 
@@ -219,6 +277,8 @@ const PersonalDataScreen = memo(() => {
   return (
     <div>
       <div style={{ fontWeight: "bold" }}>Personal Data</div>
+
+      <br />
 
       <input
         {...register("personalData.firstName")}
@@ -302,7 +362,28 @@ const SuccessScreen = memo(() => {
   );
 });
 
+const LoadingScreen = memo(() => {
+  console.log("LoadingScreen render");
+
+  return (
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+      }}
+    >
+      <BarLoader />
+    </div>
+  );
+});
+
 const getCurrentScreen = (state: StateFrom<typeof machine>) => {
+  if (state.matches("loadingForm")) {
+    return <LoadingScreen />;
+  }
+
   if (state.matches("contactDataScreen")) {
     return <ContactDataScreen />;
   }
